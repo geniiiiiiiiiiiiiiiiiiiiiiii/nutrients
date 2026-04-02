@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NutriStudy — Day 1: Calories</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Lora:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080808;
+  --s1:#111111;
+  --s2:#1a1a1a;
+  --s3:#222222;
+  --border:#2a2a2a;
+  --acc:#ff6b35;
+  --acc2:#ffd166;
+  --acc3:#06d6a0;
+  --text:#f0ede8;
+  --muted:#888880;
+  --dim:#555550;
+  --sidebar:280px;
+  --r:12px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Lora',Georgia,serif;min-height:100vh;display:flex}
+/* ─── SIDEBAR ─── */
+.sidebar{
+  width:var(--sidebar);min-width:var(--sidebar);
+  background:var(--s1);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+}
+.sidebar-head{
+  padding:28px 24px 20px;
+  border-bottom:1px solid var(--border);
+}
+.logo{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;letter-spacing:-0.5px}
+.logo span{color:var(--acc)}
+.prog-text{font-size:12px;color:var(--muted);margin-top:6px;font-family:'JetBrains Mono',monospace}
+.prog-bar-wrap{margin-top:10px;background:var(--s3);border-radius:20px;height:4px}
+.prog-bar{height:4px;border-radius:20px;background:linear-gradient(90deg,var(--acc),var(--acc2));width:4%}
+.day-list{padding:16px 12px;flex:1}
+.day-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 12px;border-radius:8px;
+  margin-bottom:3px;cursor:default;
+  font-family:'Syne',sans-serif;font-size:13px;font-weight:600;
+  transition:background 0.15s;
+  position:relative;
+}
+.day-item.active{background:rgba(255,107,53,0.12);color:var(--acc)}
+.day-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);height:60%;width:3px;background:var(--acc);border-radius:2px}
+.day-item.locked{color:var(--dim);cursor:not-allowed}
+.day-item.done{color:var(--acc3)}
+.day-num{font-size:11px;font-family:'JetBrains Mono',monospace;min-width:24px;opacity:0.6}
+.day-lock{font-size:10px;margin-left:auto;opacity:0.4}
+/* ─── MAIN ─── */
+.main{flex:1;overflow-y:auto;min-width:0}
+/* HERO */
+.hero{
+  background:var(--s1);
+  border-bottom:1px solid var(--border);
+  padding:56px 56px 48px;
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;top:-60px;right:-60px;
+  width:400px;height:400px;
+  background:radial-gradient(circle,rgba(255,107,53,0.12) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero-tag{
+  display:inline-block;
+  background:rgba(255,107,53,0.15);
+  color:var(--acc);
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;font-weight:500;
+  letter-spacing:1px;text-transform:uppercase;
+  padding:5px 12px;border-radius:20px;
+  border:1px solid rgba(255,107,53,0.25);
+  margin-bottom:20px;
+}
+.hero h1{
+  font-family:'Syne',sans-serif;font-size:clamp(40px,6vw,72px);
+  font-weight:800;letter-spacing:-2px;line-height:1;
+  margin-bottom:16px;
+}
+.hero h1 span{color:var(--acc)}
+.hero-sub{font-size:17px;color:var(--muted);max-width:540px;line-height:1.6;font-style:italic}
+.hero-meta{
+  display:flex;gap:32px;margin-top:32px;
+}
+.meta-item{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.meta-dot{width:8px;height:8px;border-radius:50%;background:var(--acc)}
+/* ─── SECTIONS ─── */
+.content-wrap{padding:48px 56px;max-width:860px}
+.section{margin-bottom:64px}
+.section-label{
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  color:var(--acc);letter-spacing:2px;text-transform:uppercase;
+  margin-bottom:12px;
+}
+.section h2{
+  font-family:'Syne',sans-serif;font-size:28px;font-weight:700;
+  letter-spacing:-0.5px;margin-bottom:20px;
+}
+.section p{font-size:16px;line-height:1.8;color:#ccc8c0;margin-bottom:14px}
+.section p strong{color:var(--text)}
+/* CALLOUT */
+.callout{
+  background:var(--s2);border:1px solid var(--border);
+  border-left:3px solid var(--acc);
+  border-radius:var(--r);padding:20px 24px;
+  margin:20px 0;font-size:15px;line-height:1.7;color:#ccc;
+}
+.callout.green{border-left-color:var(--acc3)}
+.callout.yellow{border-left-color:var(--acc2)}
+/* FORMULA CARDS */
+.formula-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:24px 0}
+.formula-card{
+  background:var(--s2);border:1px solid var(--border);
+  border-radius:var(--r);padding:20px;text-align:center;
+  transition:border-color 0.2s,transform 0.2s;
+  cursor:default;
+}
+.formula-card:hover{border-color:var(--acc);transform:translateY(-2px)}
+.fc-emoji{font-size:28px;margin-bottom:10px}
+.fc-name{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:4px}
+.fc-value{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:500;color:var(--acc)}
+.fc-sub{font-size:12px;color:var(--muted);margin-top:4px}
+/* ENERGY BREAKDOWN */
+.energy-bars{margin:24px 0}
+.e-row{display:flex;align-items:center;gap:16px;margin-bottom:14px}
+.e-label{font-family:'Syne',sans-serif;font-size:13px;font-weight:600;min-width:200px}
+.e-bar-bg{flex:1;background:var(--s3);border-radius:20px;height:10px;overflow:hidden}
+.e-bar-fill{height:100%;border-radius:20px;transition:width 1.2s cubic-bezier(0.4,0,0.2,1)}
+.e-pct{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);min-width:38px;text-align:right}
+/* TDEE CALCULATOR */
+.calc-wrap{
+  background:var(--s2);border:1px solid var(--border);
+  border-radius:16px;padding:32px;margin:24px 0;
+}
+.calc-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;margin-bottom:6px}
+.calc-sub{font-size:14px;color:var(--muted);margin-bottom:28px}
+.calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:12px;font-family:'Syne',sans-serif;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+.field input,.field select{
+  background:var(--s3);border:1px solid var(--border);
+  border-radius:8px;padding:10px 14px;
+  color:var(--text);font-family:'JetBrains Mono',monospace;font-size:14px;
+  outline:none;transition:border-color 0.2s;
+}
+.field input:focus,.field select:focus{border-color:var(--acc)}
+.field select option{background:var(--s2)}
+.calc-btn{
+  display:inline-block;
+  background:var(--acc);color:#fff;
+  font-family:'Syne',sans-serif;font-weight:700;font-size:14px;
+  padding:12px 28px;border-radius:8px;border:none;cursor:pointer;
+  letter-spacing:0.3px;transition:opacity 0.15s,transform 0.15s;
+}
+.calc-btn:hover{opacity:0.9;transform:translateY(-1px)}
+.calc-result{
+  display:none;margin-top:24px;
+  background:var(--s3);border:1px solid var(--border);
+  border-radius:12px;padding:24px;
+}
+.result-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.result-row:last-child{border-bottom:none}
+.result-label{font-size:14px;color:var(--muted)}
+.result-val{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--acc)}
+.result-val.small{font-size:15px;color:var(--acc2)}
+/* SPECTRUM */
+.spectrum{
+  margin:24px 0;
+  background:var(--s2);border:1px solid var(--border);border-radius:16px;
+  overflow:hidden;
+}
+.spectrum-track{
+  display:flex;
+  height:8px;
+}
+.sp-danger{flex:1;background:linear-gradient(90deg,#ef4444,#f97316)}
+.sp-deficit{flex:1.5;background:linear-gradient(90deg,#f97316,#fbbf24)}
+.sp-maintain{flex:0.5;background:#06d6a0}
+.sp-surplus{flex:1.5;background:linear-gradient(90deg,#fbbf24,#f97316)}
+.sp-danger2{flex:1;background:linear-gradient(90deg,#f97316,#ef4444)}
+.spectrum-cards{display:grid;grid-template-columns:repeat(5,1fr)}
+.sp-card{padding:18px 14px;border-right:1px solid var(--border)}
+.sp-card:last-child{border-right:none}
+.sp-card-head{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;margin-bottom:6px}
+.sp-card-kcal{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:8px}
+.sp-card p{font-size:11px;line-height:1.6;color:#999}
+/* MYTH/FACT */
+.myth-grid{display:grid;gap:14px;margin:24px 0}
+.myth-card{
+  background:var(--s2);border:1px solid var(--border);border-radius:var(--r);
+  overflow:hidden;
+}
+.myth-top{
+  display:flex;align-items:flex-start;gap:12px;padding:18px 20px 14px;
+}
+.myth-badge{
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;
+  padding:3px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:0.5px;
+  margin-top:2px;white-space:nowrap;
+}
+.badge-myth{background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.2)}
+.badge-fact{background:rgba(6,214,160,0.15);color:var(--acc3);border:1px solid rgba(6,214,160,0.2)}
+.myth-text{font-family:'Syne',sans-serif;font-size:15px;font-weight:600}
+.myth-explain{padding:0 20px 18px 20px;font-size:14px;line-height:1.7;color:#aaa;border-top:1px solid var(--border);padding-top:14px}
+/* SCENARIO COMPARISON */
+.scenario-tabs{display:flex;gap:8px;margin-bottom:20px}
+.sc-tab{
+  font-family:'Syne',sans-serif;font-size:13px;font-weight:600;
+  padding:8px 18px;border-radius:20px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);cursor:pointer;transition:all 0.15s;
+}
+.sc-tab.active{background:var(--acc);border-color:var(--acc);color:#fff}
+.sc-panel{display:none}
+.sc-panel.active{display:block}
+.sc-body{
+  background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:24px;
+}
+.effect-list{list-style:none;display:flex;flex-direction:column;gap:10px}
+.effect-list li{
+  display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:1.6;
+}
+.effect-list li::before{content:'→';color:var(--acc);font-family:'JetBrains Mono',monospace;font-size:12px;margin-top:3px;flex-shrink:0}
+/* EXAMPLES */
+.example-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:24px 0}
+.ex-card{
+  background:var(--s2);border:1px solid var(--border);border-radius:var(--r);
+  padding:18px;transition:border-color 0.2s;
+}
+.ex-card:hover{border-color:var(--acc)}
+.ex-emoji{font-size:24px;margin-bottom:8px}
+.ex-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin-bottom:4px}
+.ex-kcal{font-family:'JetBrains Mono',monospace;font-size:18px;color:var(--acc);margin-bottom:4px}
+.ex-note{font-size:12px;color:var(--muted);line-height:1.5}
+/* QUIZ */
+.quiz-wrap{background:var(--s2);border:1px solid var(--border);border-radius:16px;padding:32px;margin:24px 0}
+.quiz-q{margin-bottom:28px}
+.quiz-q-text{font-family:'Syne',sans-serif;font-size:16px;font-weight:600;margin-bottom:14px}
+.quiz-options{display:flex;flex-direction:column;gap:8px}
+.quiz-opt{
+  background:var(--s3);border:1px solid var(--border);
+  border-radius:8px;padding:12px 16px;
+  font-size:14px;cursor:pointer;transition:all 0.15s;
+  display:flex;align-items:center;gap:10px;
+  font-family:'Lora',serif;
+}
+.quiz-opt:hover{border-color:var(--acc);color:var(--acc)}
+.quiz-opt.correct{border-color:var(--acc3);background:rgba(6,214,160,0.08);color:var(--acc3)}
+.quiz-opt.wrong{border-color:#ef4444;background:rgba(239,68,68,0.08);color:#ef4444}
+.quiz-opt.disabled{pointer-events:none}
+.opt-indicator{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px}
+.quiz-feedback{display:none;margin-top:10px;font-size:13px;padding:10px 14px;border-radius:8px;line-height:1.6}
+.fb-correct{background:rgba(6,214,160,0.1);color:var(--acc3);display:block}
+.fb-wrong{background:rgba(239,68,68,0.1);color:#ef4444;display:block}
+.quiz-score{
+  display:none;text-align:center;padding:24px;
+  border-top:1px solid var(--border);margin-top:24px;
+}
+.score-num{font-family:'Syne',sans-serif;font-size:48px;font-weight:800;color:var(--acc)}
+.score-label{font-size:14px;color:var(--muted);margin-top:4px}
+/* TAKEAWAYS */
+.takeaway-list{display:flex;flex-direction:column;gap:12px;margin:24px 0}
+.takeaway{
+  display:flex;align-items:flex-start;gap:14px;
+  background:var(--s2);border:1px solid var(--border);border-radius:var(--r);
+  padding:16px 20px;
+}
+.t-num{
+  font-family:'Syne',sans-serif;font-size:13px;font-weight:800;
+  color:var(--acc);min-width:24px;margin-top:1px;
+}
+.t-text{font-size:14px;line-height:1.7;color:#ccc}
+.t-text strong{color:var(--text)}
+/* COMPLETE BUTTON */
+.complete-section{
+  padding:40px 56px;border-top:1px solid var(--border);
+  background:var(--s1);
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:16px;
+}
+.complete-btn{
+  background:var(--acc);color:#fff;
+  font-family:'Syne',sans-serif;font-weight:700;font-size:15px;
+  padding:14px 32px;border-radius:10px;border:none;cursor:pointer;
+  transition:all 0.2s;letter-spacing:0.3px;
+}
+.complete-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(255,107,53,0.3)}
+.complete-btn.done{background:var(--acc3);pointer-events:none}
+.next-preview{font-size:13px;color:var(--muted)}
+.next-preview strong{color:var(--text)}
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.hero>*{animation:fadeUp 0.6s ease both}
+.hero .hero-tag{animation-delay:0.05s}
+.hero h1{animation-delay:0.1s}
+.hero-sub{animation-delay:0.15s}
+.hero-meta{animation-delay:0.2s}
+@keyframes barGrow{from{width:0}to{width:var(--target-w)}}
+/* DIVIDER */
+.divider{height:1px;background:var(--border);margin:8px 0 32px}
+/* RESPONSIVE */
+@media(max-width:768px){
+  .sidebar{display:none}
+  .content-wrap{padding:28px 24px}
+  .hero{padding:32px 24px}
+  .calc-grid{grid-template-columns:1fr}
+  .complete-section{padding:28px 24px}
+  .spectrum-cards{grid-template-columns:1fr}
+}
+/* TOOLTIP */
+abbr{border-bottom:1px dotted var(--muted);cursor:help;text-decoration:none}
+/* TABLE */
+.data-table{width:100%;border-collapse:collapse;margin:20px 0;font-size:14px}
+.data-table th{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);padding:10px 14px;border-bottom:2px solid var(--border);text-align:left}
+.data-table td{padding:10px 14px;border-bottom:1px solid var(--border);color:#ccc;line-height:1.5}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:var(--s2)}
+.td-acc{color:var(--acc);font-family:'JetBrains Mono',monospace}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-head">
+    <div class="logo">Nutri<span>Study</span></div>
+    <div class="prog-text">1 / 25 nutrients</div>
+    <div class="prog-bar-wrap"><div class="prog-bar"></div></div>
+  </div>
+  <div class="day-list" id="dayList"></div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-tag">📅 April 2 · Day 1 of 25</div>
+    <h1>Cal<span>ories</span></h1>
+    <p class="hero-sub">The unit of life. Everything your body does — thinking, breathing, healing — runs on this single currency of energy.</p>
+    <div class="hero-meta">
+      <div class="meta-item"><div class="meta-dot"></div>~25 min read</div>
+      <div class="meta-item"><div class="meta-dot" style="background:var(--acc2)"></div>Interactive calculator</div>
+      <div class="meta-item"><div class="meta-dot" style="background:var(--acc3)"></div>Quiz at the end</div>
+    </div>
+  </div>
+
+  <div class="content-wrap">
+
+    <!-- SECTION 1: WHAT IS A CALORIE -->
+    <div class="section">
+      <div class="section-label">Section 01</div>
+      <h2>What Actually Is a Calorie?</h2>
+      <p>A <strong>calorie</strong> (lowercase c) is a physics term: the energy required to raise 1 gram of water by 1°C. That's tiny. What you see on food labels is actually a <strong>kilocalorie (kcal)</strong> — 1,000 of those small calories — though we lazily call it a "calorie" in everyday speech.</p>
+      <p>Think of a calorie not as a "thing" in food, but as a <em>measurement</em> — the way kilometres measure distance. You're measuring how much chemical energy is locked inside a food's molecular bonds, waiting to be released.</p>
+
+      <div class="callout">
+        <strong>🔬 The physics:</strong> When your cells break down glucose (sugar), they're doing the same thing as burning it — releasing the energy stored in carbon-hydrogen bonds. Your body just does it in a controlled, step-by-step way to capture that energy as <abbr title="Adenosine Triphosphate — the actual energy molecule your cells use">ATP</abbr>, rather than releasing it all at once as heat.
+      </div>
+
+      <p>Every macronutrient contains a different amount of energy per gram:</p>
+
+      <div class="formula-grid">
+        <div class="formula-card">
+          <div class="fc-emoji">🍞</div>
+          <div class="fc-name">Carbohydrates</div>
+          <div class="fc-value">4 kcal/g</div>
+          <div class="fc-sub">Body's preferred fuel</div>
+        </div>
+        <div class="formula-card">
+          <div class="fc-emoji">🥩</div>
+          <div class="fc-name">Protein</div>
+          <div class="fc-value">4 kcal/g</div>
+          <div class="fc-sub">Also used for building</div>
+        </div>
+        <div class="formula-card">
+          <div class="fc-emoji">🥑</div>
+          <div class="fc-name">Fat</div>
+          <div class="fc-value">9 kcal/g</div>
+          <div class="fc-sub">Most energy-dense</div>
+        </div>
+        <div class="formula-card">
+          <div class="fc-emoji">🍺</div>
+          <div class="fc-name">Alcohol</div>
+          <div class="fc-value">7 kcal/g</div>
+          <div class="fc-sub">No nutritional value</div>
+        </div>
+      </div>
+
+      <p>This is why fat is so <em>calorie-dense</em> — a tablespoon of olive oil (13g) has ~120 kcal, while 13g of chicken breast has only ~22 kcal. Same weight, more than 5× the energy. This is also why eating high-fat foods in large volumes adds up very fast.</p>
+    </div>
+
+    <!-- SECTION 2: ENERGY SYSTEMS -->
+    <div class="section">
+      <div class="section-label">Section 02</div>
+      <h2>Where Do Calories Actually Go?</h2>
+      <p>Your <strong>Total Daily Energy Expenditure (TDEE)</strong> is not just "what you burn at the gym." It's the sum of four completely different processes happening at the same time:</p>
+
+      <div class="energy-bars" id="energyBars">
+        <div class="e-row">
+          <div class="e-label">🛌 BMR — Basal Metabolic Rate</div>
+          <div class="e-bar-bg"><div class="e-bar-fill" style="width:0%;background:var(--acc)" data-w="68%"></div></div>
+          <div class="e-pct">68%</div>
+        </div>
+        <div class="e-row">
+          <div class="e-label">🚶 NEAT — Daily Movement</div>
+          <div class="e-bar-bg"><div class="e-bar-fill" style="width:0%;background:var(--acc2)" data-w="17%"></div></div>
+          <div class="e-pct">17%</div>
+        </div>
+        <div class="e-row">
+          <div class="e-label">🍽 TEF — Digesting Food</div>
+          <div class="e-bar-bg"><div class="e-bar-fill" style="width:0%;background:var(--acc3)" data-w="10%"></div></div>
+          <div class="e-pct">10%</div>
+        </div>
+        <div class="e-row">
+          <div class="e-label">🏋️ EAT — Exercise</div>
+          <div class="e-bar-bg"><div class="e-bar-fill" style="width:0%;background:#a78bfa" data-w="5%"></div></div>
+          <div class="e-pct">5%</div>
+        </div>
+      </div>
+
+      <p><strong>BMR</strong> is huge and often underestimated. Even if you did absolutely nothing all day — no movement, no digestion, lying still in a coma-like state — your body burns 1,400–1,900 kcal just to keep organs running: heart pumping, lungs inflating, kidneys filtering, neurons firing, cells dividing.</p>
+
+      <div class="callout yellow">
+        <strong>💡 Surprising fact:</strong> Your brain alone consumes roughly <strong>300–400 kcal per day</strong>, about 20% of your BMR, despite being only 2% of your body weight. On exam days or periods of intense focus, this can increase slightly. This is why mental fatigue feels physical — it is.
+      </div>
+
+      <p><strong>NEAT</strong> (Non-Exercise Activity Thermogenesis) is wildly underrated. Fidgeting, typing, standing, walking to the kitchen — it all adds up. Naturally "lean" people often unconsciously move more throughout the day (up to 350 extra kcal/day in studies). This is why two people eating the same amount can have very different body compositions.</p>
+
+      <p><strong>TEF</strong> (Thermic Effect of Food) means digestion burns calories too. Protein has the highest TEF at 20–30% of its caloric value — meaning eating 100 kcal of protein effectively "costs" 20–30 kcal to process. This is one reason high-protein diets aid fat loss.</p>
+
+      <table class="data-table">
+        <thead><tr><th>Component</th><th>What it includes</th><th>Calories burned</th><th>Controllable?</th></tr></thead>
+        <tbody>
+          <tr><td>BMR</td><td>Organ function, cellular maintenance</td><td class="td-acc">1,400–1,900 kcal</td><td>Slightly (muscle mass)</td></tr>
+          <tr><td>NEAT</td><td>Fidgeting, standing, walking around</td><td class="td-acc">100–800 kcal</td><td>Yes — a lot</td></tr>
+          <tr><td>TEF</td><td>Chewing, digesting, absorbing</td><td class="td-acc">150–250 kcal</td><td>Somewhat (diet comp.)</td></tr>
+          <tr><td>EAT</td><td>Intentional workouts</td><td class="td-acc">100–600 kcal</td><td>Yes</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SECTION 3: TDEE CALCULATOR -->
+    <div class="section">
+      <div class="section-label">Section 03 — Interactive</div>
+      <h2>Calculate Your Energy Needs</h2>
+      <p>This uses the <strong>Mifflin-St Jeor equation</strong>, considered the most accurate for most people. It estimates your BMR, then multiplies by an activity factor to get your TDEE — the number of calories needed to maintain your current weight.</p>
+
+      <div class="calc-wrap">
+        <div class="calc-title">⚡ Your TDEE Calculator</div>
+        <div class="calc-sub">Fill in your details to see your personal energy numbers</div>
+        <div class="calc-grid">
+          <div class="field">
+            <label>Age (years)</label>
+            <input type="number" id="age" placeholder="e.g. 28" min="15" max="100"/>
+          </div>
+          <div class="field">
+            <label>Biological Sex</label>
+            <select id="sex">
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Weight (kg)</label>
+            <input type="number" id="weight" placeholder="e.g. 75" min="30" max="300"/>
+          </div>
+          <div class="field">
+            <label>Height (cm)</label>
+            <input type="number" id="height" placeholder="e.g. 175" min="100" max="250"/>
+          </div>
+          <div class="field" style="grid-column:1/-1">
+            <label>Activity Level</label>
+            <select id="activity">
+              <option value="1.2">Sedentary (desk job, little movement)</option>
+              <option value="1.375">Lightly active (light exercise 1–3x/week)</option>
+              <option value="1.55" selected>Moderately active (exercise 3–5x/week)</option>
+              <option value="1.725">Very active (hard exercise 6–7x/week)</option>
+              <option value="1.9">Extra active (athlete / physical job)</option>
+            </select>
+          </div>
+        </div>
+        <button class="calc-btn" onclick="calcTDEE()">Calculate My Numbers →</button>
+        <div class="calc-result" id="calcResult">
+          <div class="result-row">
+            <span class="result-label">🛌 Basal Metabolic Rate (BMR)</span>
+            <span class="result-val" id="res-bmr">—</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">⚡ Total Daily Expenditure (TDEE)</span>
+            <span class="result-val" id="res-tdee">—</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">📉 Moderate deficit (−0.5 kg/week)</span>
+            <span class="result-val small" id="res-deficit">—</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">📈 Lean bulk (muscle gain, +0.25 kg/week)</span>
+            <span class="result-val small" id="res-surplus">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 4: THE SPECTRUM -->
+    <div class="section">
+      <div class="section-label">Section 04</div>
+      <h2>The Calorie Spectrum: What Really Happens</h2>
+      <p>Your body doesn't just "store fat" or "burn fat" in a binary way. Caloric intake creates a <em>spectrum of physiological responses</em>, and the extremes are very different from a moderate deficit or surplus.</p>
+
+      <div class="spectrum">
+        <div class="spectrum-track">
+          <div class="sp-danger"></div>
+          <div class="sp-deficit"></div>
+          <div class="sp-maintain"></div>
+          <div class="sp-surplus"></div>
+          <div class="sp-danger2"></div>
+        </div>
+        <div class="spectrum-cards">
+          <div class="sp-card">
+            <div class="sp-card-head" style="color:#ef4444">🚨 Starvation</div>
+            <div class="sp-card-kcal">&lt; TDEE − 1000</div>
+            <p>Muscle catabolism, organ stress, immune crash, metabolic adaptation, hair loss, hormonal shutdown</p>
+          </div>
+          <div class="sp-card">
+            <div class="sp-card-head" style="color:#fb923c">📉 Deficit</div>
+            <div class="sp-card-kcal">TDEE − 250/500</div>
+            <p>Fat loss, mild hunger, possible energy dip. Sustainable and healthy if protein is adequate</p>
+          </div>
+          <div class="sp-card">
+            <div class="sp-card-head" style="color:var(--acc3)">✅ Maintenance</div>
+            <div class="sp-card-kcal">= TDEE</div>
+            <p>Weight stable, energy consistent, body in homeostasis. Ideal for long-term health</p>
+          </div>
+          <div class="sp-card">
+            <div class="sp-card-head" style="color:#fbbf24">📈 Surplus</div>
+            <div class="sp-card-kcal">TDEE + 250/500</div>
+            <p>Weight gain. With training, supports muscle growth. Fat gain is minimal if controlled</p>
+          </div>
+          <div class="sp-card">
+            <div class="sp-card-head" style="color:#ef4444">🚨 Excess</div>
+            <div class="sp-card-kcal">&gt; TDEE + 1000</div>
+            <p>Rapid fat gain, insulin resistance, inflammation, metabolic syndrome risk over time</p>
+          </div>
+        </div>
+      </div>
+
+      <p style="margin-top:20px">Let's look at what really happens inside at each extreme:</p>
+
+      <div class="scenario-tabs">
+        <button class="sc-tab active" onclick="showScenario('deficit',this)">Deficit</button>
+        <button class="sc-tab" onclick="showScenario('maintain',this)">Maintenance</button>
+        <button class="sc-tab" onclick="showScenario('surplus',this)">Surplus</button>
+        <button class="sc-tab" onclick="showScenario('starve',this)">Starvation</button>
+      </div>
+
+      <div id="sc-deficit" class="sc-panel active">
+        <div class="sc-body">
+          <p style="font-size:14px;color:var(--muted);margin-bottom:14px">What happens in a <strong style="color:var(--text)">moderate deficit (−500 kcal/day)</strong> over time:</p>
+          <ul class="effect-list">
+            <li>Your body pulls energy from stored triglycerides (body fat) — cells literally shrink as fat is mobilized and oxidised</li>
+            <li>Insulin levels drop, enabling fat cells to release their stored fatty acids into the bloodstream</li>
+            <li>Growth hormone spikes slightly to preserve muscle tissue</li>
+            <li>Mild hunger hormone ghrelin increases — you'll feel hungrier, especially in weeks 1–2</li>
+            <li>After 3–4 weeks, metabolic adaptation begins: BMR can drop ~5–10% as your body tries to conserve energy</li>
+            <li>Lose ~0.5 kg/week (mostly fat if protein intake is high, around 1.6–2.2g per kg bodyweight)</li>
+            <li>Cognitive effects are minimal at moderate deficits — you may actually feel clearer at first</li>
+          </ul>
+        </div>
+      </div>
+      <div id="sc-maintain" class="sc-panel">
+        <div class="sc-body">
+          <p style="font-size:14px;color:var(--muted);margin-bottom:14px">What happens at <strong style="color:var(--text)">maintenance calories</strong> day-to-day:</p>
+          <ul class="effect-list">
+            <li>Glucose is prioritised as fuel; glycogen stores in liver (~100g) and muscles (~400g) stay topped up</li>
+            <li>No fat mobilisation needed — the body is in energy equilibrium</li>
+            <li>Insulin cycles normally with meals; glucose cleared efficiently</li>
+            <li>Hormones like leptin, testosterone, and thyroid hormones are at optimal levels</li>
+            <li>Immune system gets full energy allocation for maintenance and response</li>
+            <li>Tissue repair happens at normal rate — this is the body's "default" mode</li>
+            <li>Sleep quality tends to be better; cortisol rhythms stay normal</li>
+          </ul>
+        </div>
+      </div>
+      <div id="sc-surplus" class="sc-panel">
+        <div class="sc-body">
+          <p style="font-size:14px;color:var(--muted);margin-bottom:14px">What happens in a <strong style="color:var(--text)">lean bulk (+250–500 kcal/day)</strong>:</p>
+          <ul class="effect-list">
+            <li>Glycogen stores are fully topped up first — liver and muscle glycogen hit maximum capacity</li>
+            <li>Insulin stays elevated longer; glucose is converted to fatty acids via de novo lipogenesis</li>
+            <li>With resistance training + protein: the surplus fuels muscle protein synthesis (MPS)</li>
+            <li>IGF-1 and mTOR pathway activation — the molecular signals that drive muscle growth</li>
+            <li>Expect ~0.5–1 kg total weight gain/month on a proper lean bulk (about 50% muscle, 50% fat)</li>
+            <li>Energy levels are high; recovery from training is noticeably faster</li>
+            <li>Long-term uncontrolled surplus leads to increased visceral fat, which is metabolically active in a bad way</li>
+          </ul>
+        </div>
+      </div>
+      <div id="sc-starve" class="sc-panel">
+        <div class="sc-body">
+          <p style="font-size:14px;color:var(--muted);margin-bottom:14px">What happens in <strong style="color:var(--text)">severe restriction (&lt;1000 kcal/day)</strong>:</p>
+          <ul class="effect-list">
+            <li>Glycogen depletes in 24–48 hours; the body switches to gluconeogenesis — making glucose from muscle proteins</li>
+            <li>Cortisol spikes chronically to break down muscle (catabolism) for fuel — you lose muscle fast</li>
+            <li>Ketone bodies rise as the liver begins converting fat into an alternative brain fuel</li>
+            <li>T3 thyroid hormone drops 20–40% — metabolism slows dramatically, you feel constantly cold</li>
+            <li>Leptin (satiety hormone) plummets; you become obsessed with food — this is biological, not weakness</li>
+            <li>Immune function deteriorates; wound healing slows; hair growth halts (telogen effluvium)</li>
+            <li>Refeeding too fast after starvation can cause refeeding syndrome — dangerous electrolyte shifts</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 5: MYTHS -->
+    <div class="section">
+      <div class="section-label">Section 05</div>
+      <h2>Myth vs. Reality</h2>
+      <p>Calories are one of the most myth-laden topics in nutrition. Here are the most common misconceptions — and the real science:</p>
+
+      <div class="myth-grid">
+        <div class="myth-card">
+          <div class="myth-top">
+            <span class="myth-badge badge-myth">Myth</span>
+            <span class="myth-text">"Eating at night makes you fat"</span>
+          </div>
+          <div class="myth-explain">Your body doesn't have a clock that decides "it's 9pm, store everything as fat." What matters is your total 24-hour caloric balance, not timing. The reason late eating correlates with weight gain is behavioural: people tend to eat more calories at night (snacking, alcohol, larger portions), not because night-time is metabolically different.</div>
+        </div>
+        <div class="myth-card">
+          <div class="myth-top">
+            <span class="myth-badge badge-myth">Myth</span>
+            <span class="myth-text">"A calorie is a calorie — food quality doesn't matter"</span>
+          </div>
+          <div class="myth-explain">Technically true at the level of energy balance, but wildly misleading in practice. 500 kcal of white sugar and 500 kcal of chicken + vegetables have completely different effects on hunger hormones, nutrient delivery, gut microbiome, and long-term health. Calories matter for weight; food quality matters for everything else.</div>
+        </div>
+        <div class="myth-card">
+          <div class="myth-top">
+            <span class="myth-badge badge-myth">Myth</span>
+            <span class="myth-text">"You must burn 3,500 kcal to lose 1 pound of fat"</span>
+          </div>
+          <div class="myth-explain">This is a rough and outdated rule. In the short term, it somewhat holds — but it ignores metabolic adaptation, water retention changes, and the different energy costs of losing fat vs. muscle. Real weight loss is non-linear; the first week often shows 2–3 kg loss (mostly water/glycogen), followed by slower true fat loss.</div>
+        </div>
+        <div class="myth-card">
+          <div class="myth-top">
+            <span class="myth-badge badge-myth">Myth</span>
+            <span class="myth-text">"Eating more meals speeds up your metabolism"</span>
+          </div>
+          <div class="myth-explain">The "6 small meals" idea was widely promoted but doesn't hold up. Total TEF is determined by total food eaten, not meal frequency. Eating 6 x 300 kcal meals produces the same metabolic effect as 3 x 600 kcal meals. Meal frequency is about personal preference and hunger management, not metabolism boosting.</div>
+        </div>
+        <div class="myth-card">
+          <div class="myth-top">
+            <span class="myth-badge badge-fact">Fact</span>
+            <span class="myth-text">Food labels can be off by up to 20%</span>
+          </div>
+          <div class="myth-explain">The FDA allows ±20% error on food label calorie claims. Meanwhile, most people underestimate their portion sizes by 20–40%. This is why meticulous calorie counting rarely produces exact predicted results. Use calorie data as a guide, not a perfect measurement — and adjust based on real-world results over 2–3 weeks.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 6: REAL EXAMPLES -->
+    <div class="section">
+      <div class="section-label">Section 06</div>
+      <h2>Real World Examples</h2>
+      <p>Context is everything. Here's what different amounts of calories actually look like in food and activity — the comparisons often surprise people:</p>
+
+      <div class="example-cards">
+        <div class="ex-card">
+          <div class="ex-emoji">🍎</div>
+          <div class="ex-name">Apple (medium)</div>
+          <div class="ex-kcal">95 kcal</div>
+          <div class="ex-note">High volume, high fiber, feels substantial</div>
+        </div>
+        <div class="ex-card">
+          <div class="ex-emoji">🧈</div>
+          <div class="ex-name">1 tbsp Butter</div>
+          <div class="ex-kcal">100 kcal</div>
+          <div class="ex-note">Same calories, tiny volume, minimal satiety</div>
+        </div>
+        <div class="ex-card">
+          <div class="ex-emoji">🥤</div>
+          <div class="ex-name">Large Coke (600ml)</div>
+          <div class="ex-kcal">252 kcal</div>
+          <div class="ex-note">Zero satiety — liquid calories bypass hunger signals</div>
+        </div>
+        <div class="ex-card">
+          <div class="ex-emoji">🏃</div>
+          <div class="ex-name">Run 5km (~30 min)</div>
+          <div class="ex-kcal">~300 kcal</div>
+          <div class="ex-note">Undone by one slice of cheesecake (350 kcal)</div>
+        </div>
+        <div class="ex-card">
+          <div class="ex-emoji">🥗</div>
+          <div class="ex-name">Big salad (no dressing)</div>
+          <div class="ex-kcal">~80 kcal</div>
+          <div class="ex-note">Add 2 tbsp olive oil: +240 kcal. Dressing matters.</div>
+        </div>
+        <div class="ex-card">
+          <div class="ex-emoji">🧠</div>
+          <div class="ex-name">Your brain (daily)</div>
+          <div class="ex-kcal">~350 kcal</div>
+          <div class="ex-note">Consumes more energy than any other organ</div>
+        </div>
+        <div class="ex-card">
+          <div class="ex-emoji">😴</div>
+          <div class="ex-name">8 hours of sleep</div>
+          <div class="ex-kcal">~500 kcal</div>
+          <div class="ex-note">You burn significant calories just sleeping</div>
+        </div>
+        <div class="ex-card">
+          <div class="ex-emoji">🍫</div>
+          <div class="ex-name">100g dark chocolate</div>
+          <div class="ex-kcal">598 kcal</div>
+          <div class="ex-note">The whole bar = a third of most people's daily intake</div>
+        </div>
+      </div>
+
+      <div class="callout green">
+        <strong>🎯 The volume principle:</strong> Foods high in water and fiber (vegetables, fruit, lean proteins, soups) provide high <em>volume</em> per calorie — they fill your stomach and trigger stretch receptors that signal fullness. Ultra-processed foods are engineered to be calorie-dense but low in volume and fiber, making it easy to eat 800 kcal in 10 minutes without feeling full.
+      </div>
+    </div>
+
+    <!-- SECTION 7: PRACTICAL -->
+    <div class="section">
+      <div class="section-label">Section 07</div>
+      <h2>How to Actually Use This Knowledge</h2>
+      <p>Calorie knowledge is most powerful when it becomes intuition, not obsession. Here's how to apply it:</p>
+
+      <div class="takeaway-list">
+        <div class="takeaway">
+          <div class="t-num">01</div>
+          <div class="t-text"><strong>Don't count — estimate.</strong> You don't need a food scale forever. Learn rough calorie ranges for the foods you eat most. After 2–3 weeks of tracking, most people develop a reliable intuition that lasts years.</div>
+        </div>
+        <div class="takeaway">
+          <div class="t-num">02</div>
+          <div class="t-text"><strong>Watch liquid calories.</strong> Juices, smoothies, lattes, alcohol — they don't trigger the same satiety signals as solid food. A 400 kcal coffee drink doesn't make you less hungry at lunch. Solid food does.</div>
+        </div>
+        <div class="takeaway">
+          <div class="t-num">03</div>
+          <div class="t-text"><strong>Move more throughout the day (NEAT).</strong> A gym session burns 250–400 kcal. Being an active, fidgety person all day burns 300–600 kcal. The latter requires zero effort. Take the stairs, walk while on calls, stand sometimes.</div>
+        </div>
+        <div class="takeaway">
+          <div class="t-num">04</div>
+          <div class="t-text"><strong>Never go below ~1,400–1,600 kcal.</strong> Below this threshold, you lose muscle rapidly, metabolism adapts downward, and the deficit becomes unsustainable. Slow and steady (−300 to −500 kcal/day) beats aggressive restriction every time.</div>
+        </div>
+        <div class="takeaway">
+          <div class="t-num">05</div>
+          <div class="t-text"><strong>Recalculate every 5–7 kg.</strong> As your weight changes, your BMR changes. A person at 90 kg has a higher TDEE than the same person at 75 kg — so the calorie target that worked before needs adjusting.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="section">
+      <div class="section-label">Section 08 — Quiz</div>
+      <h2>Test Yourself</h2>
+      <p>Answer these 4 questions to lock in what you've learned. Each has a short explanation after you answer.</p>
+
+      <div class="quiz-wrap">
+        <!-- Q1 -->
+        <div class="quiz-q" id="q1">
+          <div class="quiz-q-text">1. How many kcal does 1 gram of fat provide?</div>
+          <div class="quiz-options">
+            <div class="quiz-opt" onclick="answer(this,'q1',false,'fb1')"><div class="opt-indicator"></div>4 kcal/g</div>
+            <div class="quiz-opt" onclick="answer(this,'q1',true,'fb1')"><div class="opt-indicator"></div>9 kcal/g</div>
+            <div class="quiz-opt" onclick="answer(this,'q1',false,'fb1')"><div class="opt-indicator"></div>7 kcal/g</div>
+            <div class="quiz-opt" onclick="answer(this,'q1',false,'fb1')"><div class="opt-indicator"></div>12 kcal/g</div>
+          </div>
+          <div class="quiz-feedback" id="fb1">Fat provides 9 kcal/g — more than double carbs or protein (both 4 kcal/g). Alcohol sits in between at 7 kcal/g.</div>
+        </div>
+        <!-- Q2 -->
+        <div class="quiz-q" id="q2">
+          <div class="quiz-q-text">2. What is the largest single component of your daily calorie expenditure?</div>
+          <div class="quiz-options">
+            <div class="quiz-opt" onclick="answer(this,'q2',false,'fb2')"><div class="opt-indicator"></div>Exercise (EAT)</div>
+            <div class="quiz-opt" onclick="answer(this,'q2',false,'fb2')"><div class="opt-indicator"></div>Digesting food (TEF)</div>
+            <div class="quiz-opt" onclick="answer(this,'q2',true,'fb2')"><div class="opt-indicator"></div>Basal Metabolic Rate (BMR)</div>
+            <div class="quiz-opt" onclick="answer(this,'q2',false,'fb2')"><div class="opt-indicator"></div>Daily movement (NEAT)</div>
+          </div>
+          <div class="quiz-feedback" id="fb2">BMR accounts for ~65–70% of total daily expenditure. Even sedentary people burn the vast majority of their calories just staying alive.</div>
+        </div>
+        <!-- Q3 -->
+        <div class="quiz-q" id="q3">
+          <div class="quiz-q-text">3. Which macronutrient has the highest Thermic Effect of Food (TEF)?</div>
+          <div class="quiz-options">
+            <div class="quiz-opt" onclick="answer(this,'q3',false,'fb3')"><div class="opt-indicator"></div>Carbohydrates (5–10%)</div>
+            <div class="quiz-opt" onclick="answer(this,'q3',false,'fb3')"><div class="opt-indicator"></div>Fat (0–3%)</div>
+            <div class="quiz-opt" onclick="answer(this,'q3',true,'fb3')"><div class="opt-indicator"></div>Protein (20–30%)</div>
+            <div class="quiz-opt" onclick="answer(this,'q3',false,'fb3')"><div class="opt-indicator"></div>Alcohol (15–20%)</div>
+          </div>
+          <div class="quiz-feedback" id="fb3">Protein costs 20–30% of its calories just to digest and absorb. This is one reason high-protein diets are effective — you're effectively eating fewer net calories.</div>
+        </div>
+        <!-- Q4 -->
+        <div class="quiz-q" id="q4">
+          <div class="quiz-q-text">4. A person has a TDEE of 2,200 kcal. They eat 1,700 kcal/day. Roughly how much fat will they lose per week?</div>
+          <div class="quiz-options">
+            <div class="quiz-opt" onclick="answer(this,'q4',false,'fb4')"><div class="opt-indicator"></div>~0.1 kg (~1 kg per month)</div>
+            <div class="quiz-opt" onclick="answer(this,'q4',true,'fb4')"><div class="opt-indicator"></div>~0.5 kg (~2 kg per month)</div>
+            <div class="quiz-opt" onclick="answer(this,'q4',false,'fb4')"><div class="opt-indicator"></div>~1 kg (~4 kg per month)</div>
+            <div class="quiz-opt" onclick="answer(this,'q4',false,'fb4')"><div class="opt-indicator"></div>~2 kg (~8 kg per month)</div>
+          </div>
+          <div class="quiz-feedback" id="fb4">A 500 kcal/day deficit = 3,500 kcal/week ≈ 0.45–0.5 kg of fat loss per week. This is a healthy, sustainable rate that preserves muscle if protein is adequate.</div>
+        </div>
+
+        <div class="quiz-score" id="quizScore">
+          <div class="score-num" id="scoreNum">0/4</div>
+          <div class="score-label">questions correct</div>
+          <p style="margin-top:12px;font-size:13px;color:var(--muted)">Nice work! Come back tomorrow for Day 2: <strong style="color:var(--text)">Protein</strong></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- KEY TAKEAWAYS -->
+    <div class="section">
+      <div class="section-label">Today's Takeaways</div>
+      <h2>The 5 Things to Remember</h2>
+      <div class="takeaway-list">
+        <div class="takeaway">
+          <div class="t-num">→</div>
+          <div class="t-text"><strong>Calories measure energy</strong> — carbs & protein give 4 kcal/g, fat 9 kcal/g, alcohol 7 kcal/g.</div>
+        </div>
+        <div class="takeaway">
+          <div class="t-num">→</div>
+          <div class="t-text"><strong>BMR dominates</strong> — ~65–70% of your calories are burned just keeping you alive. Exercise is a small piece.</div>
+        </div>
+        <div class="takeaway">
+          <div class="t-num">→</div>
+          <div class="t-text"><strong>NEAT is massive</strong> — unconscious daily movement can account for 300–600 extra kcal/day and varies wildly between people.</div>
+        </div>
+        <div class="takeaway">
+          <div class="t-num">→</div>
+          <div class="t-text"><strong>Deficits should be moderate</strong> — −300 to −500 kcal/day is sustainable and muscle-preserving. Extreme restriction backfires.</div>
+        </div>
+        <div class="takeaway">
+          <div class="t-num">→</div>
+          <div class="t-text"><strong>Food quality still matters</strong> — calories determine weight, but what those calories are made of determines everything else about your health.</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end content-wrap -->
+
+  <!-- COMPLETE SECTION -->
+  <div class="complete-section">
+    <div>
+      <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:4px">Done for today?</div>
+      <div class="next-preview">Tomorrow: <strong>Day 2 — Protein</strong> (April 3)</div>
+    </div>
+    <button class="complete-btn" id="completeBtn" onclick="markComplete()">✓ Mark Day 1 Complete</button>
+  </div>
+
+</div><!-- end main -->
+
+<script>
+// ─── DAY LIST ───
+const nutrients=[
+  "Calories","Protein","Dietary Fiber","Total Fat","Saturated Fat",
+  "Omega-3s","Total Carbohydrates","Added Sugar","Sodium","Water",
+  "Vitamin D","Vitamin C","Vitamin A","Vitamin B12","Folate (B9)",
+  "Vitamin K","Vitamin E","Choline","Calcium","Iron",
+  "Magnesium","Potassium","Zinc","Iodine","Selenium"
+];
+const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const startDate=new Date(2026,3,2); // April 2, 2026
+const today=1; // Day 1
+
+function buildDayList(){
+  const list=document.getElementById('dayList');
+  nutrients.forEach((n,i)=>{
+    const d=new Date(startDate);d.setDate(d.getDate()+i);
+    const day=d.getDate();const mon=months[d.getMonth()];
+    const item=document.createElement('div');
+    item.className='day-item '+(i===0?'active':i<today?'done':'locked');
+    const completed=localStorage.getItem('nutri_day_'+(i+1));
+    if(completed&&i!==0)item.className='day-item done';
+    item.innerHTML=`<span class="day-num">${String(i+1).padStart(2,'0')}</span><span>${n}</span>${i===0?'':i<today||completed?'<span class="day-lock">✓</span>':'<span class="day-lock">🔒</span>'}`;
+    list.appendChild(item);
+  });
+}
+buildDayList();
+
+// ─── ANIMATE BARS ───
+function animateBars(){
+  document.querySelectorAll('.e-bar-fill').forEach(b=>{
+    b.style.width=b.getAttribute('data-w');
+  });
+}
+setTimeout(animateBars,400);
+
+// ─── TDEE CALC ───
+function calcTDEE(){
+  const age=parseFloat(document.getElementById('age').value);
+  const sex=document.getElementById('sex').value;
+  const w=parseFloat(document.getElementById('weight').value);
+  const h=parseFloat(document.getElementById('height').value);
+  const act=parseFloat(document.getElementById('activity').value);
+  if(!age||!w||!h||isNaN(age)||isNaN(w)||isNaN(h)){
+    alert('Please fill in all fields!');return;
+  }
+  // Mifflin-St Jeor
+  let bmr;
+  if(sex==='male') bmr=(10*w)+(6.25*h)-(5*age)+5;
+  else bmr=(10*w)+(6.25*h)-(5*age)-161;
+  const tdee=Math.round(bmr*act);
+  const bmrR=Math.round(bmr);
+  document.getElementById('res-bmr').textContent=bmrR+' kcal';
+  document.getElementById('res-tdee').textContent=tdee+' kcal';
+  document.getElementById('res-deficit').textContent=(tdee-500)+' kcal';
+  document.getElementById('res-surplus').textContent=(tdee+250)+' kcal';
+  const res=document.getElementById('calcResult');
+  res.style.display='block';
+  res.style.animation='fadeUp 0.4s ease both';
+}
+
+// ─── SCENARIO TABS ───
+function showScenario(id,btn){
+  document.querySelectorAll('.sc-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sc-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('sc-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ─── QUIZ ───
+let scores={q1:null,q2:null,q3:null,q4:null};
+function answer(el,qid,correct,fbid){
+  if(scores[qid]!==null)return; // already answered
+  scores[qid]=correct;
+  const opts=el.closest('.quiz-options').querySelectorAll('.quiz-opt');
+  opts.forEach(o=>o.classList.add('disabled'));
+  el.classList.add(correct?'correct':'wrong');
+  el.querySelector('.opt-indicator').textContent=correct?'✓':'✗';
+  if(!correct){
+    // highlight correct answer
+    opts.forEach(o=>{
+      if(o!==el&&o.onclick.toString().includes('true'))o.classList.add('correct');
+    });
+  }
+  const fb=document.getElementById(fbid);
+  fb.style.display='block';
+  fb.className='quiz-feedback '+(correct?'fb-correct':'fb-wrong');
+  // check if all answered
+  if(Object.values(scores).every(s=>s!==null)){
+    const total=Object.values(scores).filter(Boolean).length;
+    document.getElementById('scoreNum').textContent=total+'/4';
+    document.getElementById('quizScore').style.display='block';
+  }
+}
+
+// ─── COMPLETE ───
+async function markComplete(){
+  const btn=document.getElementById('completeBtn');
+  btn.textContent='✓ Day 1 Complete!';
+  btn.classList.add('done');
+  localStorage.setItem('nutri_day_1','done');
+  try{
+    if(window.storage) await window.storage.set('nutri_day_1','done');
+  }catch(e){}
+  // update sidebar
+  document.querySelector('.day-item.active').style.color='var(--acc3)';
+}
+
+// Load completion state
+(async()=>{
+  let done=localStorage.getItem('nutri_day_1');
+  try{if(window.storage){const r=await window.storage.get('nutri_day_1');if(r)done=r.value;}}catch(e){}
+  if(done){
+    document.getElementById('completeBtn').textContent='✓ Day 1 Complete!';
+    document.getElementById('completeBtn').classList.add('done');
+  }
+})();
+</script>
+</body>
+</html>
