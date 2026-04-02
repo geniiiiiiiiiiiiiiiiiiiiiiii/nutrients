@@ -326,9 +326,125 @@ abbr{border-bottom:1px dotted var(--muted);cursor:help;text-decoration:none}
 .data-table tr:last-child td{border-bottom:none}
 .data-table tr:hover td{background:var(--s2)}
 .td-acc{color:var(--acc);font-family:'JetBrains Mono',monospace}
+
+/* ─── GLOSSARY TERMS ─── */
+.term {
+  border-bottom: 1.5px dashed var(--acc2);
+  color: inherit;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.term:hover {
+  color: var(--acc2);
+  border-color: var(--acc2);
+}
+
+/* ─── GLOSSARY MODAL ─── */
+.gloss-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.gloss-overlay.open { display: flex; }
+.gloss-modal {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--acc2);
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 520px;
+  width: 100%;
+  position: relative;
+  animation: fadeUp 0.2s ease both;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.gloss-close {
+  position: absolute;
+  top: 16px; right: 20px;
+  background: var(--s3);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.gloss-close:hover { background: var(--acc); color: #fff; border-color: var(--acc); }
+.gloss-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--acc2);
+  background: rgba(255,209,102,0.1);
+  border: 1px solid rgba(255,209,102,0.2);
+  border-radius: 4px;
+  padding: 3px 8px;
+  display: inline-block;
+  margin-bottom: 12px;
+}
+.gloss-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin-bottom: 6px;
+}
+.gloss-pronunciation {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 18px;
+  font-style: italic;
+}
+.gloss-body {
+  font-size: 15px;
+  line-height: 1.8;
+  color: #ccc8c0;
+  margin-bottom: 16px;
+}
+.gloss-body strong { color: var(--text); }
+.gloss-analogy {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--acc2);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 13px;
+  color: #aaa;
+  line-height: 1.7;
+  margin-top: 12px;
+}
+.gloss-analogy::before {
+  content: '💡 ';
+  font-size: 14px;
+}
 </style>
 </head>
 <body>
+
+<!-- GLOSSARY MODAL -->
+<div class="gloss-overlay" id="glossOverlay" onclick="closeGloss(event)">
+  <div class="gloss-modal" id="glossModal">
+    <button class="gloss-close" onclick="closeGlossBtn()">✕</button>
+    <div class="gloss-tag" id="glossTag">Term</div>
+    <div class="gloss-title" id="glossTitle">—</div>
+    <div class="gloss-pronunciation" id="glossPron"></div>
+    <div class="gloss-body" id="glossBody"></div>
+    <div class="gloss-analogy" id="glossAnalogy"></div>
+  </div>
+</div>
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
@@ -977,6 +1093,384 @@ async function markComplete(){
     document.getElementById('completeBtn').classList.add('done');
   }
 })();
+
+// ─── GLOSSARY ───
+const GLOSSARY = {
+  BMR: {
+    tag: 'Metabolism',
+    title: 'BMR',
+    full: 'Basal Metabolic Rate',
+    pron: '/ˌbeɪ.səl ˌmet.ə.ˈbɒl.ɪk reɪt/',
+    body: `<strong>BMR</strong> is the number of calories your body burns at complete rest — just to keep you alive. Think: heart beating, lungs breathing, kidneys filtering, cells repairing. It accounts for <strong>65–70%</strong> of everything you burn in a day, even if you never move.\n\nIt's calculated using your height, weight, age, and sex. A typical adult has a BMR of 1,400–1,900 kcal/day.`,
+    analogy: `Think of BMR as your phone's battery drain when it's just sitting on a table — screen off, no apps open. It's still draining just to stay "on."`
+  },
+  TDEE: {
+    tag: 'Energy',
+    title: 'TDEE',
+    full: 'Total Daily Energy Expenditure',
+    pron: '/ˌtoʊ.t̬əl ˈdeɪ.li ˌen.ɚ.dʒi ɪkˈspend.ɪ.tʃɚ/',
+    body: `<strong>TDEE</strong> is the total calories your body burns in a full day — BMR + all movement + digestion + exercise. It's your personal "maintenance" number: eat exactly this much and your weight stays the same.\n\nEat below it → lose weight. Eat above it → gain weight. It varies hugely between people (1,500–4,000+ kcal/day).`,
+    analogy: `TDEE is your monthly budget. BMR is your rent (unavoidable). NEAT is groceries and transit. Exercise is optional gym membership. TEF is bank fees. Spend less than your income → save money (lose fat). Spend more → go into debt (gain weight).`
+  },
+  NEAT: {
+    tag: 'Activity',
+    title: 'NEAT',
+    full: 'Non-Exercise Activity Thermogenesis',
+    pron: '/nɒn ˈek.sɚ.saɪz æk.tɪv.ɪ.ti θɜːr.moʊˈdʒen.ɪ.sɪs/',
+    body: `<strong>NEAT</strong> is all the calories you burn through movement that isn't intentional exercise — fidgeting, walking to the fridge, typing, gesturing while talking, standing, taking the stairs.\n\nThis number varies <strong>dramatically</strong> between people (100–800+ kcal/day). Studies show naturally lean people unconsciously move ~350 kcal/day more than sedentary people, without any gym time.`,
+    analogy: `NEAT is like background apps running on your phone without you opening them. You don't notice, but they're quietly draining the battery all day long.`
+  },
+  TEF: {
+    tag: 'Digestion',
+    title: 'TEF',
+    full: 'Thermic Effect of Food',
+    pron: '/ˈθɜːr.mɪk ɪˈfekt əv fuːd/',
+    body: `<strong>TEF</strong> is the energy your body uses to digest, absorb, and process food. Eating literally burns calories.\n\nDifferent macronutrients have very different TEFs:\n— <strong>Protein: 20–30%</strong> (eating 100 kcal of protein costs 20–30 kcal to process)\n— Carbs: 5–10%\n— Fat: 0–3%\n\nThis is one reason high-protein diets are effective: you absorb fewer net calories.`,
+    analogy: `TEF is like the transaction fee on a payment. Paying with protein charges a 25% fee. Paying with fat charges almost nothing. You're "spending" energy just to spend energy.`
+  },
+  EAT: {
+    tag: 'Exercise',
+    title: 'EAT',
+    full: 'Exercise Activity Thermogenesis',
+    pron: '/ˈek.sɚ.saɪz æk.tɪv.ɪ.ti θɜːr.moʊˈdʒen.ɪ.sɪs/',
+    body: `<strong>EAT</strong> is the calories burned during intentional, structured exercise — gym sessions, running, cycling, sports. Despite what fitness culture implies, this is actually the <strong>smallest</strong> component of daily energy use for most people, typically only 5% of TDEE.\n\nA typical gym session burns 200–500 kcal. That's equivalent to one medium meal.`,
+    analogy: `EAT is the tip you leave at a restaurant — meaningful, but not the bulk of what you spend. Most of the bill (BMR, NEAT) happens automatically.`
+  },
+  ghrelin: {
+    tag: 'Hormone',
+    title: 'Ghrelin',
+    full: 'The Hunger Hormone',
+    pron: '/ˈɡrel.ɪn/',
+    body: `<strong>Ghrelin</strong> is a hormone produced mainly in your stomach that signals hunger to your brain. When your stomach is empty, ghrelin rises. After eating, it drops.\n\nIn a calorie deficit, ghrelin levels increase — your body is biologically fighting against weight loss. This is not a lack of willpower; it's a programmed survival mechanism. Ghrelin also spikes in response to sleep deprivation.`,
+    analogy: `Ghrelin is like your phone's low-battery warning — it's just an alert sent from your stomach to your brain saying "charge me." You can ignore it, but it keeps popping up.`
+  },
+  insulin: {
+    tag: 'Hormone',
+    title: 'Insulin',
+    full: 'Blood Sugar Regulator',
+    pron: '/ˈɪn.sjʊ.lɪn/',
+    body: `<strong>Insulin</strong> is a hormone released by the pancreas in response to eating, especially carbohydrates. Its main job is to move glucose from your blood into your cells for energy or storage.\n\nHigh insulin = fat storage mode (cells are absorbing energy). Low insulin = fat burning mode (cells release stored energy). Chronically high insulin from overeating can lead to insulin resistance, where cells stop responding properly.`,
+    analogy: `Insulin is a delivery driver. When you eat, sugar floods your blood (the road). Insulin shows up to deliver glucose to cells (houses). If there are too many deliveries, the houses stop answering the door — that's insulin resistance.`
+  },
+  leptin: {
+    tag: 'Hormone',
+    title: 'Leptin',
+    full: 'The Satiety Hormone',
+    pron: '/ˈlep.tɪn/',
+    body: `<strong>Leptin</strong> is a hormone produced by fat cells that tells your brain "we have enough energy stored — stop eating." The more fat you carry, the more leptin you produce.\n\nIn starvation or severe restriction, leptin plummets, making you feel constantly hungry and obsessed with food. This is why crash diets feel mentally unbearable — it's not willpower, it's biology.`,
+    analogy: `Leptin is like a fuel gauge on your car. Fat cells are the tank. When the tank is full, leptin says "we're good." When the tank empties (crash diet), the warning light blasts on and you can't think about anything else.`
+  },
+  cortisol: {
+    tag: 'Hormone',
+    title: 'Cortisol',
+    full: 'The Stress Hormone',
+    pron: '/ˈkɔːr.tɪ.sɒl/',
+    body: `<strong>Cortisol</strong> is a hormone released by the adrenal glands in response to stress — including physical stress like extreme calorie restriction. It breaks down muscle tissue for energy and promotes fat storage, especially around the belly.\n\nChronic high cortisol (from crash diets, overtraining, or chronic stress) is catabolic — it literally eats your muscle. It also disrupts sleep, immunity, and hormonal balance.`,
+    analogy: `Cortisol is your body's "emergency overdraft fee." When cash (glucose) runs out, cortisol forces your body to sell assets (muscle) at a bad rate to cover the bill.`
+  },
+  catabolism: {
+    tag: 'Metabolism',
+    title: 'Catabolism',
+    full: 'Tissue Breakdown Process',
+    pron: '/kəˈtæb.ə.lɪ.z(ə)m/',
+    body: `<strong>Catabolism</strong> is the metabolic process of breaking down complex molecules into simpler ones, releasing energy. In nutrition, it usually refers to breaking down muscle protein into amino acids to use as fuel — the thing you want to avoid.\n\nCatabolism happens during severe restriction, overtraining without recovery, illness, and high stress. It's the opposite of anabolism (building up tissue).`,
+    analogy: `Catabolism is like burning your furniture to heat the house when you've run out of firewood. It works, but you're destroying valuable structure to get energy.`
+  },
+  anabolism: {
+    tag: 'Metabolism',
+    title: 'Anabolism',
+    full: 'Tissue Building Process',
+    pron: '/əˈnæb.ə.lɪ.z(ə)m/',
+    body: `<strong>Anabolism</strong> is the opposite of catabolism — it's the metabolic process of building complex molecules from simpler ones. Building muscle, repairing tissue, creating hormones. It requires energy (calories) and raw materials (protein, vitamins, minerals).\n\nAnabolism is promoted by calorie surplus, adequate protein, resistance training, sleep, and hormones like testosterone and growth hormone.`,
+    analogy: `Anabolism is construction — using raw materials (protein, energy) to build something new (muscle, tissue). You can't build without both the materials and the budget.`
+  },
+  gluconeogenesis: {
+    tag: 'Biochemistry',
+    title: 'Gluconeogenesis',
+    full: 'Making Glucose from Non-Carbs',
+    pron: '/ˌɡluː.koʊˌniː.oʊˈdʒen.ɪ.sɪs/',
+    body: `<strong>Gluconeogenesis</strong> is your liver's ability to manufacture glucose (blood sugar) from non-carbohydrate sources — mainly amino acids from muscle protein, and glycerol from fat.\n\nThis kicks in when you're in severe restriction or fasting and carbohydrate stores (glycogen) are depleted. The problem: your body sacrifices muscle to get the amino acids needed to make glucose. It's a survival mechanism, not ideal for body composition.`,
+    analogy: `Gluconeogenesis is like your factory converting machinery parts into fuel to keep the lights on. Emergency measure — it works, but you're cannibalising your own infrastructure.`
+  },
+  glycogen: {
+    tag: 'Energy Storage',
+    title: 'Glycogen',
+    full: 'Stored Glucose in Muscle & Liver',
+    pron: '/ˈɡlaɪ.kə.dʒen/',
+    body: `<strong>Glycogen</strong> is how your body stores carbohydrates for quick access. Your liver holds ~100g (~400 kcal) for blood sugar regulation. Your muscles hold ~400g (~1,600 kcal) for movement energy.\n\nGlycogen is your body's first fuel source during exercise and the first thing depleted during fasting or restriction. When glycogen depletes, water is also released (3–4g water per gram of glycogen), which is why people lose 1–3 kg very quickly at the start of a diet — it's mostly water, not fat.`,
+    analogy: `Glycogen is your phone's RAM — fast, immediately accessible, but limited. Fat is your hard drive — huge capacity, slower to access. You run on RAM first, then access the hard drive when RAM runs out.`
+  },
+  triglycerides: {
+    tag: 'Fat Storage',
+    title: 'Triglycerides',
+    full: 'The Form Fat Is Stored In',
+    pron: '/traɪˈɡlɪs.ɚ.aɪdz/',
+    body: `<strong>Triglycerides</strong> are the primary form in which fat is stored in your body and found in food. Each triglyceride molecule is one glycerol molecule bonded to three fatty acid chains.\n\nBlood triglycerides are a common health marker. High levels (from overeating, especially sugar) are associated with cardiovascular risk. During a calorie deficit, triglycerides in fat cells are broken down and the fatty acids are released into the bloodstream to be used as fuel.`,
+    analogy: `Think of triglycerides as a storage box with three items packed inside. When your body needs energy, it opens the box, removes the items (fatty acids), and burns them. The box itself (glycerol) gets converted to glucose.`
+  },
+  'insulin resistance': {
+    tag: 'Metabolic Health',
+    title: 'Insulin Resistance',
+    full: 'Reduced Cellular Response to Insulin',
+    pron: '/ˈɪn.sjʊ.lɪn rɪˈzɪs.t̬əns/',
+    body: `<strong>Insulin resistance</strong> means your cells don't respond properly to insulin's signal to absorb glucose. Your pancreas compensates by producing more and more insulin. Over time, this leads to chronically high blood sugar and eventually Type 2 diabetes.\n\nIt develops from long-term overeating (especially of refined carbs and sugar), excess visceral fat, physical inactivity, and poor sleep. It's largely reversible with diet, exercise, and weight loss.`,
+    analogy: `Insulin resistance is like a roommate who stops responding to your messages. You text once — no reply. You send ten texts. Eventually you're screaming at them (flooding with insulin) just to get a basic response.`
+  },
+  'metabolic adaptation': {
+    tag: 'Metabolism',
+    title: 'Metabolic Adaptation',
+    full: 'The Body Adjusting to Calorie Restriction',
+    pron: '/ˌmet.ə.ˈbɒl.ɪk ˌæd.æpˈteɪ.ʃən/',
+    body: `<strong>Metabolic adaptation</strong> (also called "adaptive thermogenesis") is your body's response to prolonged calorie restriction — it down-regulates metabolism to reduce energy expenditure. BMR can drop 5–15% beyond what weight loss alone would predict.\n\nThis is why dieting gets harder over time and why "plateaus" happen. It's a survival mechanism. It reverses when you eat at maintenance for long enough (diet breaks, reverse dieting).`,
+    analogy: `Metabolic adaptation is like your company cutting costs after a revenue drop — they reduce hours, cancel contracts, turn off lights. Your body does the same: slows heartbeat slightly, reduces body temperature, cuts non-essential functions.`
+  },
+  'thermic effect': {
+    tag: 'Digestion',
+    title: 'Thermic Effect',
+    full: 'Calories Burned During Digestion',
+    pron: '/ˈθɜːr.mɪk ɪˈfekt/',
+    body: `The <strong>thermic effect</strong> refers to the energy (calories) required to digest, absorb, and metabolise nutrients from food. The word "thermic" means heat — your body temperature actually rises slightly after eating, which is this energy being released.\n\nProtein has the highest thermic effect (20–30%), meaning it's the least "efficient" macronutrient in terms of net caloric absorption. This is one reason protein is valuable for weight management.`,
+    analogy: `The thermic effect is like the cost of converting currency. Exchanging protein "currency" into body energy has a 25% fee. Fat conversion costs almost nothing. You still get the energy, but protein shortchanges itself.`
+  },
+  'visceral fat': {
+    tag: 'Fat Types',
+    title: 'Visceral Fat',
+    full: 'Deep Organ-Surrounding Fat',
+    pron: '/ˈvɪs.ɚ.əl fæt/',
+    body: `<strong>Visceral fat</strong> is fat stored deep inside the abdominal cavity, surrounding your organs (liver, pancreas, intestines). It's different from subcutaneous fat (the pinchable fat under your skin).\n\nVisceral fat is metabolically active — it secretes inflammatory compounds and hormones that increase risk of heart disease, diabetes, and metabolic syndrome. It responds well to exercise and caloric restriction, often decreasing faster than subcutaneous fat.`,
+    analogy: `Subcutaneous fat is like stuff in your backpack — visible, annoying, but harmless. Visceral fat is like stuff jammed inside the engine compartment of your car — hidden, but actively causing problems with the machinery.`
+  },
+  'de novo lipogenesis': {
+    tag: 'Biochemistry',
+    title: 'De Novo Lipogenesis',
+    full: 'Converting Carbs to Fat',
+    pron: '/deɪ ˈnoʊ.voʊ ˌlɪp.oʊˈdʒen.ɪ.sɪs/',
+    body: `<strong>De novo lipogenesis</strong> (DNL) is the process by which your liver converts excess carbohydrates into fat for storage. "De novo" is Latin for "from scratch."\n\nThis happens when glycogen stores are already full and you continue eating carbohydrates. The liver converts the excess glucose into fatty acids, packages them as triglycerides, and ships them off to fat tissue for storage.`,
+    analogy: `DNL is what happens when your phone's RAM is completely full and new data keeps coming in — the system has to convert it and move it to long-term storage. Your liver is the converter.`
+  },
+  mTOR: {
+    tag: 'Biochemistry',
+    title: 'mTOR',
+    full: 'Mechanistic Target of Rapamycin',
+    pron: '/ˌem tiː ˌoʊ ˈɑːr/',
+    body: `<strong>mTOR</strong> is a protein kinase (a molecular switch) that acts as a master regulator of cell growth and protein synthesis. When mTOR is activated — by food, amino acids (especially leucine), and exercise — it signals cells to grow and build.\n\nFor muscle building, mTOR activation is critical. Resistance training + protein intake (especially leucine-rich sources like whey or meat) powerfully activates mTOR, triggering muscle protein synthesis.`,
+    analogy: `mTOR is the foreman at a construction site. When supplies (protein, energy) arrive and the order comes in (training signal), the foreman authorises the crew to start building. No foreman signal = no construction.`
+  },
+  'IGF-1': {
+    tag: 'Hormone',
+    title: 'IGF-1',
+    full: 'Insulin-Like Growth Factor 1',
+    pron: '/ˌaɪ dʒiː ˈef wʌn/',
+    body: `<strong>IGF-1</strong> (Insulin-Like Growth Factor 1) is a hormone produced mainly by the liver in response to Growth Hormone. It promotes cell growth, protein synthesis, and muscle repair.\n\nIGF-1 is elevated in calorie surplus + protein intake, especially after resistance training. It's one of the key anabolic signals the body uses to build muscle. It declines with age, which partly explains why gaining muscle gets harder over time.`,
+    analogy: `IGF-1 is like a building permit. Growth Hormone is the mayor issuing permits. When you eat enough and train hard, the mayor signs the permit, and construction (muscle growth) can legally proceed.`
+  },
+  'growth hormone': {
+    tag: 'Hormone',
+    title: 'Growth Hormone',
+    full: 'Human Growth Hormone (HGH)',
+    pron: '/ɡroʊθ ˈhɔːr.moʊn/',
+    body: `<strong>Growth Hormone (GH)</strong> is released by the pituitary gland and promotes tissue growth, muscle preservation, and fat breakdown. It spikes during deep sleep (particularly slow-wave sleep) and after intense exercise.\n\nDuring a moderate calorie deficit, GH increases slightly to protect muscle mass. During sleep deprivation or severe restriction, GH is suppressed, making you more likely to lose muscle instead of fat.`,
+    analogy: `Growth hormone is the night-shift maintenance crew. They come in while you sleep to repair, build, and upgrade the building. Skip sleep, and the crew never shows up — the building deteriorates.`
+  },
+  'refeeding syndrome': {
+    tag: 'Medical',
+    title: 'Refeeding Syndrome',
+    full: 'Dangerous Electrolyte Shift After Starvation',
+    pron: '/ˌriːˈfiː.dɪŋ ˈsɪn.droʊm/',
+    body: `<strong>Refeeding syndrome</strong> is a potentially life-threatening condition that occurs when a person who has been severely malnourished or starved suddenly starts eating again — especially large amounts of carbohydrates.\n\nWhen carbs are reintroduced, insulin surges, and phosphate, potassium, and magnesium rapidly shift from blood into cells. This can cause dangerous drops in blood electrolytes, leading to heart arrhythmias, muscle weakness, confusion, or heart failure. It's managed by very gradual, medically supervised refeeding.`,
+    analogy: `Refeeding syndrome is like overcharging a completely dead battery — if you apply too much current too fast, it can cause a dangerous reaction. The system needs gradual reintroduction, not a flood.`
+  },
+  'ketone bodies': {
+    tag: 'Biochemistry',
+    title: 'Ketone Bodies',
+    full: 'Alternative Brain Fuel from Fat',
+    pron: '/ˈkiː.toʊn ˈbɒd.iz/',
+    body: `<strong>Ketone bodies</strong> are molecules (acetoacetate, beta-hydroxybutyrate, acetone) produced by the liver when carbohydrate intake is very low and fat is being broken down rapidly. They serve as an alternative fuel source — especially for the brain, which normally runs on glucose.\n\nKetosis is the state of relying primarily on ketones for fuel. It occurs during fasting, very low-carb diets, or starvation. Mild ketosis is generally safe; severe ketoacidosis (uncontrolled diabetes) is dangerous.`,
+    analogy: `Ketone bodies are your body's generator fuel. When the main power line (glucose/glycogen) is cut, the liver fires up the generator, converting fat into ketones that can power even the most energy-demanding organ — your brain.`
+  },
+  'homeostasis': {
+    tag: 'Physiology',
+    title: 'Homeostasis',
+    full: 'The Body\'s Self-Regulating Balance',
+    pron: '/ˌhoʊ.mi.oʊˈsteɪ.sɪs/',
+    body: `<strong>Homeostasis</strong> is the body's tendency to maintain internal stability — temperature, blood sugar, pH, hormone levels, energy balance. When you disrupt one variable (like calorie intake), the body activates counterbalancing systems to restore equilibrium.\n\nIn nutrition, homeostasis is why extreme dieting backfires: the body adapts by lowering metabolism, increasing hunger hormones, and reducing activity, all to "defend" its set point. It's not failure — it's incredibly sophisticated self-regulation.`,
+    analogy: `Homeostasis is a thermostat — set to 70°F, it turns on heating if the room gets cold, or air conditioning if it gets hot. Your body does the same with almost every measurable internal variable.`
+  },
+  'Mifflin-St Jeor': {
+    tag: 'Formula',
+    title: 'Mifflin-St Jeor Equation',
+    full: 'The Gold-Standard BMR Formula',
+    pron: '/ˈmɪf.lɪn seɪnt dʒiːr/',
+    body: `The <strong>Mifflin-St Jeor equation</strong> (1990) is considered the most accurate widely-used formula for estimating BMR. It uses age, height, weight, and sex:\n\n<strong>Men:</strong> (10 × weight kg) + (6.25 × height cm) − (5 × age) + 5\n<strong>Women:</strong> (10 × weight kg) + (6.25 × height cm) − (5 × age) − 161\n\nIt's more accurate than the older Harris-Benedict equation but still only an estimate — real metabolic rates vary ±10–15%.`,
+    analogy: `The equation is like a GPS estimate for your calorie needs. It's very good — better than guessing — but actual road conditions (your specific metabolism) may differ. Use it as a starting point, then adjust based on real-world results.`
+  },
+  ATP: {
+    tag: 'Biochemistry',
+    title: 'ATP',
+    full: 'Adenosine Triphosphate',
+    pron: '/ˌeɪ tiː ˈpiː/',
+    body: `<strong>ATP</strong> (Adenosine Triphosphate) is the actual energy currency your cells use to do everything — contract muscles, fire neurons, build proteins, pump ions. Food energy doesn't directly power your body; it's first converted into ATP.\n\nWhen ATP releases its energy, it becomes ADP (losing a phosphate group). Cells are constantly regenerating ATP from ADP using the energy from food. Your body produces its own weight in ATP every day.`,
+    analogy: `ATP is like cash in your wallet. Food is like a bank account — you can't pay for things directly from your bank app. Food energy must first be "withdrawn" (converted to ATP) before your cells can spend it.`
+  },
+  'macronutrient': {
+    tag: 'Nutrition',
+    title: 'Macronutrient',
+    full: 'The Big Three Nutrients',
+    pron: '/ˈmæk.roʊˌnjuː.tri.ənt/',
+    body: `<strong>Macronutrients</strong> ("macros") are the three main nutrient categories that provide calories: <strong>carbohydrates</strong> (4 kcal/g), <strong>protein</strong> (4 kcal/g), and <strong>fat</strong> (9 kcal/g). Alcohol is sometimes counted as a fourth (7 kcal/g) but provides no nutrition.\n\nMacros are called "macro" because you need them in large quantities (grams per day), unlike micronutrients (vitamins and minerals) which are needed in milligrams or micrograms.`,
+    analogy: `Macros are like the three main building blocks of a meal — the starch, protein, and fat. Just like a building needs concrete, steel, and glass in large amounts, your body needs macros in large amounts every single day.`
+  },
+  'metabolic syndrome': {
+    tag: 'Health Risk',
+    title: 'Metabolic Syndrome',
+    full: 'A Cluster of Metabolic Risk Factors',
+    pron: '/ˌmet.ə.ˈbɒl.ɪk ˈsɪn.droʊm/',
+    body: `<strong>Metabolic syndrome</strong> is a cluster of conditions that occur together, increasing your risk of heart disease, stroke, and Type 2 diabetes. It's diagnosed when you have 3 or more of: large waist circumference, high blood pressure, high fasting blood sugar, high triglycerides, and low HDL cholesterol.\n\nIt affects ~25–35% of adults in developed countries and is strongly linked to chronic calorie excess, physical inactivity, and excess visceral fat.`,
+    analogy: `Metabolic syndrome is like a system overloaded in multiple ways at once — not just one warning light on your dashboard, but four or five simultaneously. Each one is manageable alone; combined, they signal serious mechanical stress.`
+  },
+  'T3 thyroid': {
+    tag: 'Hormone',
+    title: 'T3 (Thyroid Hormone)',
+    full: 'Triiodothyronine — The Metabolic Controller',
+    pron: '/ˌtraɪˌaɪ.oʊdoʊˈθaɪ.rə.niːn/',
+    body: `<strong>T3 (triiodothyronine)</strong> is the active form of thyroid hormone, produced by the thyroid gland. It's one of the primary regulators of your metabolic rate — it controls how fast cells burn energy.\n\nDuring severe calorie restriction, T3 levels can drop 20–40%, causing your metabolic rate to slow dramatically. You feel cold, fatigued, and mentally foggy. This is a primary driver of the "metabolic slowdown" that happens on crash diets.`,
+    analogy: `T3 is the accelerator pedal for your metabolism. Starvation essentially puts a foot on the brake — T3 drops, your engine slows, and everything from body temperature to energy feels lower.`
+  },
+  'telogen effluvium': {
+    tag: 'Medical',
+    title: 'Telogen Effluvium',
+    full: 'Stress-Induced Hair Loss',
+    pron: '/ˈtel.ə.dʒɛn ɪˈfluː.vi.əm/',
+    body: `<strong>Telogen effluvium</strong> is temporary, diffuse hair loss caused by physical or emotional stress — including severe calorie restriction, rapid weight loss, illness, surgery, or hormonal changes. Hair follicles are prematurely pushed into the "resting" phase (telogen), and 2–3 months later, large amounts of hair shed simultaneously.\n\nIt's not permanent — hair typically regrows once the stressor is removed and nutrition is restored. It's a sign the body is diverting resources away from non-essential functions.`,
+    analogy: `Telogen effluvium is like a tree dropping its leaves early in response to drought. The tree isn't dying — it's conserving water by shedding non-essential parts. Once conditions improve, leaves (hair) regrow.`
+  },
+  'stretch receptors': {
+    tag: 'Physiology',
+    title: 'Stretch Receptors',
+    full: 'Stomach Volume Satiety Sensors',
+    pron: '/stretʃ rɪˈsep.tɚz/',
+    body: `<strong>Stretch receptors</strong> in your stomach wall detect physical volume — how stretched or full your stomach is. When activated, they send signals to your brain (via the vagus nerve) that you're full.\n\nThis is why high-volume, low-calorie foods (vegetables, soups, fruits) are satisfying — they physically expand your stomach. Ultra-processed foods are often low-volume but calorie-dense, bypassing this satiety mechanism and allowing you to eat enormous calories without feeling full.`,
+    analogy: `Stretch receptors are like sensors in a water balloon. Fill the balloon (stomach) with water (volume) and the sensors trip, sending a "full" signal. A small amount of oil fills the balloon less but adds more calories — the sensors don't fire the same way.`
+  },
+  'protein synthesis': {
+    tag: 'Biochemistry',
+    title: 'Protein Synthesis',
+    full: 'Building New Proteins in the Body',
+    pron: '/ˈproʊ.tiːn ˈsɪn.θɪ.sɪs/',
+    body: `<strong>Protein synthesis</strong> is the process by which cells build new proteins from amino acids — the building blocks derived from dietary protein. It's how your body repairs muscle after exercise, makes enzymes, creates hormones, and maintains every tissue.\n\n<strong>Muscle protein synthesis (MPS)</strong> specifically refers to building new muscle fibers. MPS is elevated after resistance training and after eating protein (especially leucine-rich sources). The goal of a muscle-building diet is to keep MPS consistently elevated.`,
+    analogy: `Protein synthesis is like a construction crew assembling a building from bricks. Amino acids are the bricks. The training signal is the architectural blueprint. No bricks → no building. No blueprint → no structure.`
+  },
+};
+
+// Map of text patterns to glossary keys (case-insensitive matching)
+const TERM_MAP = [
+  [/\bBMR\b/g, 'BMR'],
+  [/\bTDEE\b/g, 'TDEE'],
+  [/\bNEAT\b/g, 'NEAT'],
+  [/\bTEF\b/g, 'TEF'],
+  [/\bEAT\b(?= —| is| burns| accounts)/g, 'EAT'],
+  [/\bghrelin\b/gi, 'ghrelin'],
+  [/\binsulin resistance\b/gi, 'insulin resistance'],
+  [/\binsulin\b(?! resistance)/gi, 'insulin'],
+  [/\bleptin\b/gi, 'leptin'],
+  [/\bcortisol\b/gi, 'cortisol'],
+  [/\bcatabolism\b/gi, 'catabolism'],
+  [/\bcatabolic\b/gi, 'catabolism'],
+  [/\banabolism\b/gi, 'anabolism'],
+  [/\banabolic\b/gi, 'anabolism'],
+  [/\bgluconeogenesis\b/gi, 'gluconeogenesis'],
+  [/\bglycogen\b/gi, 'glycogen'],
+  [/\btriglycerides?\b/gi, 'triglycerides'],
+  [/\bde novo lipogenesis\b/gi, 'de novo lipogenesis'],
+  [/\bmTOR\b/g, 'mTOR'],
+  [/\bIGF-1\b/g, 'IGF-1'],
+  [/\bgrowth hormone\b/gi, 'growth hormone'],
+  [/\brefeeding syndrome\b/gi, 'refeeding syndrome'],
+  [/\bketone bodies\b/gi, 'ketone bodies'],
+  [/\bketones?\b/gi, 'ketone bodies'],
+  [/\bhomeostasis\b/gi, 'homeostasis'],
+  [/\bMifflin-St Jeor\b/gi, 'Mifflin-St Jeor'],
+  [/\bATP\b/g, 'ATP'],
+  [/\bmacronutrients?\b/gi, 'macronutrient'],
+  [/\bmetabolic syndrome\b/gi, 'metabolic syndrome'],
+  [/\bT3\b(?= thyroid| hormone| levels| drops)/g, 'T3 thyroid'],
+  [/\btelogen effluvium\b/gi, 'telogen effluvium'],
+  [/\bstretch receptors?\b/gi, 'stretch receptors'],
+  [/\bprotein synthesis\b/gi, 'protein synthesis'],
+  [/\bMPS\b/g, 'protein synthesis'],
+  [/\bmetabolic adaptation\b/gi, 'metabolic adaptation'],
+  [/\bthermic effect\b/gi, 'thermic effect'],
+  [/\bvisceral fat\b/gi, 'visceral fat'],
+];
+
+function wrapTermsInNode(node) {
+  if (node.nodeType === Node.TEXT_NODE) {
+    let text = node.textContent;
+    let html = text;
+    let modified = false;
+    // Escape HTML first
+    const escapeHtml = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    html = escapeHtml(text);
+    for (const [regex, key] of TERM_MAP) {
+      regex.lastIndex = 0;
+      const newHtml = html.replace(regex, (match) => {
+        modified = true;
+        return `<span class="term" data-term="${key}" onclick="openGloss('${key}')" tabindex="0">${match}</span>`;
+      });
+      if (newHtml !== html) { html = newHtml; modified = true; }
+    }
+    if (modified) {
+      const span = document.createElement('span');
+      span.innerHTML = html;
+      node.parentNode.replaceChild(span, node);
+    }
+  } else if (
+    node.nodeType === Node.ELEMENT_NODE &&
+    !['SCRIPT','STYLE','INPUT','SELECT','TEXTAREA','BUTTON','A'].includes(node.tagName) &&
+    !node.classList.contains('term') &&
+    !node.classList.contains('gloss-modal')
+  ) {
+    Array.from(node.childNodes).forEach(wrapTermsInNode);
+  }
+}
+
+function initGlossary() {
+  const content = document.querySelector('.content-wrap');
+  if (content) wrapTermsInNode(content);
+  // Also wrap in takeaways / complete section
+  const sections = document.querySelectorAll('.complete-section, .hero-sub');
+  sections.forEach(wrapTermsInNode);
+}
+
+function openGloss(key) {
+  const entry = GLOSSARY[key];
+  if (!entry) return;
+  document.getElementById('glossTag').textContent = entry.tag;
+  document.getElementById('glossTitle').textContent = entry.title + (entry.full && entry.full !== entry.title ? ' — ' + entry.full : '');
+  document.getElementById('glossPron').textContent = entry.pron || '';
+  document.getElementById('glossBody').innerHTML = entry.body.replace(/\n/g, '<br>');
+  document.getElementById('glossAnalogy').textContent = entry.analogy;
+  document.getElementById('glossOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeGlossBtn() {
+  document.getElementById('glossOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function closeGloss(e) {
+  if (e.target === document.getElementById('glossOverlay')) closeGlossBtn();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeGlossBtn();
+});
+
+// Run after DOM is ready
+document.addEventListener('DOMContentLoaded', initGlossary);
+// Also run now in case DOM is already loaded
+if (document.readyState !== 'loading') initGlossary();
 </script>
 </body>
 </html>
