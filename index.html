@@ -986,19 +986,38 @@ const nutrients=[
   "Magnesium","Potassium","Zinc","Iodine","Selenium"
 ];
 const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const startDate=new Date(2026,3,2); // April 2, 2026
-const today=1; // Day 1
+const startDate=new Date(2026,3,2); // April 2, 2026 (month is 0-indexed)
+
+// Calculate which day we're on based on today's real date
+function getCurrentDay(){
+  const now=new Date();
+  const start=new Date(2026,3,2);
+  // Zero out time so we compare dates only
+  now.setHours(0,0,0,0);
+  start.setHours(0,0,0,0);
+  const diff=Math.floor((now-start)/(1000*60*60*24));
+  return Math.max(0, Math.min(diff, nutrients.length-1)); // 0-indexed, clamped
+}
 
 function buildDayList(){
   const list=document.getElementById('dayList');
+  const todayIndex=getCurrentDay(); // 0-indexed day we're currently on
   nutrients.forEach((n,i)=>{
     const d=new Date(startDate);d.setDate(d.getDate()+i);
-    const day=d.getDate();const mon=months[d.getMonth()];
+    const mon=months[d.getMonth()];
+    const dayNum=d.getDate();
     const item=document.createElement('div');
-    item.className='day-item '+(i===0?'active':i<today?'done':'locked');
     const completed=localStorage.getItem('nutri_day_'+(i+1));
-    if(completed&&i!==0)item.className='day-item done';
-    item.innerHTML=`<span class="day-num">${String(i+1).padStart(2,'0')}</span><span>${n}</span>${i===0?'':i<today||completed?'<span class="day-lock">✓</span>':'<span class="day-lock">🔒</span>'}`;
+    // Active = today's day. Unlocked = today or earlier. Locked = future.
+    if(i===todayIndex){
+      item.className='day-item active';
+    } else if(i<todayIndex||completed){
+      item.className='day-item done';
+    } else {
+      item.className='day-item locked';
+    }
+    const lockIcon=i===todayIndex?'':(i<todayIndex||completed)?'<span class="day-lock">✓</span>':'<span class="day-lock">🔒</span>';
+    item.innerHTML=`<span class="day-num">${String(i+1).padStart(2,'0')}</span><span>${n}</span><span style="font-size:11px;color:var(--muted);margin-left:auto;font-family:'JetBrains Mono',monospace">${mon} ${dayNum}</span>${lockIcon}`;
     list.appendChild(item);
   });
 }
